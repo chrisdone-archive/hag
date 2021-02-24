@@ -1,0 +1,32 @@
+name:                hag
+version:             0.1.0.0
+github:              "githubuser/hag"
+license:             BSD3
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2021 Author name here"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+description:         Please see the README on GitHub at <https://github.com/githubuser/hag#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- ghc-lib-parser
+- text
+- bytestring
+- conduit
+- conduit-extra
+- optparse-applicative
+- unliftio
+
+executables:
+  hag:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
