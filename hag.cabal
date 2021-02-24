@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4d78417309850e1f3c570c1d14d36b18f3270d5c2d4ce9e80c29f6b490f017ef
+-- hash: 5b2e9052ccf2fc29cdb72f91ff81c1a48b0f0931fa8f3d216337b0f729304b6e
 
 name:           hag
 version:        0.1.0.0
@@ -40,6 +40,7 @@ executable hag
     , containers
     , ghc-lib-parser
     , optparse-applicative
+    , regex-compat
     , text
     , unliftio
   default-language: Haskell2010

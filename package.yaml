@@ -21,6 +21,7 @@ dependencies:
 - conduit-extra
 - optparse-applicative
 - containers
+- regex-compat
 - unliftio
 
 executables:

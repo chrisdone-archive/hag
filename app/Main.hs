@@ -49,6 +49,7 @@ import qualified "ghc-lib-parser" Lexer as L
 import                            Options.Applicative
 import "ghc-lib-parser"           SrcLoc
 import "ghc-lib-parser"           StringBuffer
+import                            Text.Regex
 
 import                            System.Environment
 import                            UnliftIO
@@ -62,11 +63,11 @@ main = do
   dir:idents <- getArgs
   runConduitRes
     (sourceDirectoryDeep False dir .| CL.filter isHaskell .|
-     CL.mapM_ (void . liftIO . forkIO . dump idents))
+     CL.mapM_ (void . liftIO . dump (map mkRegex idents)))
 
 isHaskell = List.isSuffixOf ".hs"
 
-dump :: [String] -> FilePath -> IO ()
+dump :: [Regex] -> FilePath -> IO ()
 dump idents fp = do
   bytes <- S.readFile fp
   case tokenizeHaskellLoc (T.decodeUtf8 bytes) of
@@ -77,7 +78,7 @@ dump idents fp = do
              (mapMaybe
                 (\(tokens@((_, Loc {line}):_)) ->
                    if null idents || all
-                        (\ident -> any (List.isPrefixOf ident.show.fst) tokens)
+                        (\ident -> any (isJust . matchRegex ident .show.fst) tokens)
                         idents
                      then pure
                             (fp' <> ":" <> SB.intDec line <> ": " <>
