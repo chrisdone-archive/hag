@@ -17,6 +17,8 @@
 
 module Main (main) where
 
+import qualified "ghc-lib-parser" ApiAnnotation
+import "ghc-lib-parser"           BasicTypes
 import                            Control.Monad
 import                            Control.Monad.IO.Class
 import                            Data.ByteString (ByteString)
@@ -26,21 +28,27 @@ import qualified                  Data.ByteString.Char8 as S8
 import                            Data.Conduit
 import                            Data.Conduit.Filesystem
 import qualified                  Data.Conduit.List as CL
+import                            Data.Function
 import                            Data.List (foldl')
 import qualified                  Data.List as List
 import                            Data.Maybe
+import                            Data.Ord
+import                            Data.Set (Set)
+import qualified                  Data.Set as Set
 import                            Data.Text (Text)
 import qualified                  Data.Text as T
 import qualified                  Data.Text.Encoding as T
 import qualified                  Data.Text.IO as T
 import "ghc-lib-parser"           DynFlags
 import qualified "ghc-lib-parser" EnumSet as ES
+import "ghc-lib-parser"           FastString
 import "ghc-lib-parser"           FastString (mkFastString)
 import "ghc-lib-parser"           GHC.LanguageExtensions
 import qualified "ghc-lib-parser" Lexer as L
 import                            Options.Applicative
 import "ghc-lib-parser"           SrcLoc
 import "ghc-lib-parser"           StringBuffer
+
 import                            System.Environment
 import                            UnliftIO
 
@@ -50,27 +58,38 @@ import                            UnliftIO
 main :: IO ()
 main = do
   hSetBuffering stdout (BlockBuffering (Just 4096))
-  dir:ident <- getArgs
-  runConduitRes (sourceDirectoryDeep False dir .| CL.filter isHaskell .| CL.mapM_ (liftIO . dump))
+  dir:idents <- getArgs
+  runConduitRes
+    (sourceDirectoryDeep False dir .| CL.filter isHaskell .|
+     CL.mapM_ (liftIO . dump (Set.fromList (map S8.pack idents))))
 
 isHaskell = List.isSuffixOf ".hs"
 
-dump :: FilePath -> IO ()
-dump fp = do
+dump :: Set ByteString -> FilePath -> IO ()
+dump idents fp = do
   bytes <- S.readFile fp
   case tokenizeHaskellLoc (T.decodeUtf8 bytes) of
-    Nothing -> pure ()
     Just tokens -> do
-      SB.hPutBuilder
-        stdout
-        (foldMap
-           (\(token, loc) ->
-              (fp' <> ":" <> showLoc loc <> ": " <> SB.byteString (S8.pack (show token))) <> "\n")
-           tokens)
- where fp' = SB.byteString (S8.pack fp)
-
-showLoc :: Loc -> SB.Builder
-showLoc Loc {line,col} = SB.intDec line <> ":" <> SB.intDec col
+        SB.hPutBuilder
+          stdout
+          (mconcat
+             (mapMaybe
+                (\(tokens@((_, Loc {line}):_)) ->
+                   if Set.null idents || any
+                        (\(tok, loc) -> Set.member (S8.pack (show tok)) idents)
+                        tokens
+                     then pure
+                            (fp' <> ":" <> SB.intDec line <> ": " <>
+                             foldMap
+                               (\(token, _) ->
+                                  SB.byteString (S8.pack (show token)) <> " ")
+                               tokens <>
+                             "\n")
+                     else Nothing)
+                (List.groupBy (on (==) (line . snd)) tokens)))
+    _ -> pure ()
+  where
+    fp' = SB.byteString (S8.pack fp)
 
 --------------------------------------------------------------------------------
 -- Lexing

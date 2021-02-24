@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3ebaf2ce8606a439feb56ca8eeccffb384060f638b4ce61ff2309b6fbc08ebab
+-- hash: 4d78417309850e1f3c570c1d14d36b18f3270d5c2d4ce9e80c29f6b490f017ef
 
 name:           hag
 version:        0.1.0.0
@@ -37,6 +37,7 @@ executable hag
     , bytestring
     , conduit
     , conduit-extra
+    , containers
     , ghc-lib-parser
     , optparse-applicative
     , text
