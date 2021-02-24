@@ -58,7 +58,7 @@ import                            UnliftIO
 
 main :: IO ()
 main = do
-  hSetBuffering stdout (BlockBuffering (Just 4096))
+  hSetBuffering stdout (BlockBuffering Nothing)
   dir:idents <- getArgs
   runConduitRes
     (sourceDirectoryDeep False dir .| CL.filter isHaskell .|
