@@ -19,6 +19,7 @@ module Main (main) where
 
 import qualified "ghc-lib-parser" ApiAnnotation
 import "ghc-lib-parser"           BasicTypes
+import                            Control.Concurrent
 import                            Control.Monad
 import                            Control.Monad.IO.Class
 import                            Data.ByteString (ByteString)
@@ -61,11 +62,11 @@ main = do
   dir:idents <- getArgs
   runConduitRes
     (sourceDirectoryDeep False dir .| CL.filter isHaskell .|
-     CL.mapM_ (liftIO . dump (Set.fromList (map S8.pack idents))))
+     CL.mapM_ (void . liftIO . forkIO . dump idents))
 
 isHaskell = List.isSuffixOf ".hs"
 
-dump :: Set ByteString -> FilePath -> IO ()
+dump :: [String] -> FilePath -> IO ()
 dump idents fp = do
   bytes <- S.readFile fp
   case tokenizeHaskellLoc (T.decodeUtf8 bytes) of
@@ -75,9 +76,9 @@ dump idents fp = do
           (mconcat
              (mapMaybe
                 (\(tokens@((_, Loc {line}):_)) ->
-                   if Set.null idents || any
-                        (\(tok, loc) -> Set.member (S8.pack (show tok)) idents)
-                        tokens
+                   if null idents || all
+                        (\ident -> any (List.isPrefixOf ident.show.fst) tokens)
+                        idents
                      then pure
                             (fp' <> ":" <> SB.intDec line <> ": " <>
                              foldMap
