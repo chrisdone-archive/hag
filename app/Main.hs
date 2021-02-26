@@ -8,10 +8,10 @@
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields -fno-warn-orphans #-}
 
--- | This is the preprocessor that extracts ? from the module, retaining
--- their positions, and then passes them to the compiler plugin.
---
+-- Want to say:
+-- hag
 
+--
 -- © 2020 Sky Above Limited
 -- © 2018 Mark Karpov
 
@@ -61,9 +61,10 @@ main :: IO ()
 main = do
   hSetBuffering stdout (BlockBuffering Nothing)
   dir:idents <- getArgs
-  runConduitRes
-    (sourceDirectoryDeep False dir .| CL.filter isHaskell .|
-     CL.mapM_ (void . liftIO . dump (map mkRegex idents)))
+  things <-
+    runConduitRes
+      (sourceDirectoryDeep False dir .| CL.filter isHaskell .| CL.consume)
+  pooledMapConcurrently_ (void . liftIO . dump (map mkRegex idents)) things
 
 isHaskell = List.isSuffixOf ".hs"
 
@@ -78,13 +79,13 @@ dump idents fp = do
              (mapMaybe
                 (\(tokens@((_, Loc {line}):_)) ->
                    if null idents || all
-                        (\ident -> any (isJust . matchRegex ident .show.fst) tokens)
+                        (\ident -> any (isJust . matchRegex ident .showTrunc.fst) tokens)
                         idents
                      then pure
                             (fp' <> ":" <> SB.intDec line <> ": " <>
                              foldMap
                                (\(token, _) ->
-                                  SB.byteString (S8.pack (show token)) <> " ")
+                                  SB.byteString (S8.pack (showTrunc token)) <> " ")
                                tokens <>
                              "\n")
                      else Nothing)
@@ -92,6 +93,10 @@ dump idents fp = do
     _ -> pure ()
   where
     fp' = SB.byteString (S8.pack fp)
+
+-- Drop the IT prefix
+showTrunc :: Show a => a -> String
+showTrunc = drop 2 . show
 
 --------------------------------------------------------------------------------
 -- Lexing
