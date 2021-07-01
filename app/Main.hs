@@ -66,7 +66,7 @@ main = do
       (sourceDirectoryDeep False dir .| CL.filter isHaskell .| CL.consume)
   pooledMapConcurrently_ (void . liftIO . dump (map mkRegex idents)) things
 
-isHaskell = List.isSuffixOf ".hs"
+isHaskell fp = List.isSuffixOf ".hs" fp && not (List.isInfixOf ".stack-work" fp)
 
 dump :: [Regex] -> FilePath -> IO ()
 dump idents fp = do

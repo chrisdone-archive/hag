@@ -1,1 +1,5 @@
 # hag
+
+
+
+    $ hag DIRECTORY IDENT*
